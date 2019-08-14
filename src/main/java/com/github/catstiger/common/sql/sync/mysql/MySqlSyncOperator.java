@@ -4,11 +4,11 @@ import java.io.IOException;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.alibaba.druid.pool.DruidDataSource;
 import com.github.catstiger.common.sql.NamingStrategy;
 import com.github.catstiger.common.sql.sync.DDLExecutor;
 import com.github.catstiger.common.sql.sync.DatabaseInfo;
 import com.github.catstiger.common.sql.sync.ModelClassLoader;
+import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * 执行数据库DDL同步操作
@@ -29,13 +29,12 @@ public abstract class MySqlSyncOperator {
    */
   public static void sync(DbConnInfo connInfo, DDLExecutor executor, NamingStrategy namingStrategy, boolean strongReferences,
       String... packagesToScan) throws IOException {
-    DruidDataSource dataSource = new DruidDataSource();
+    HikariDataSource dataSource = new HikariDataSource();
     dataSource.setDriverClassName(connInfo.driver);
-    dataSource.setUrl(connInfo.url);
+    dataSource.setJdbcUrl(connInfo.url);
     dataSource.setUsername(connInfo.user);
     dataSource.setPassword(connInfo.password);
-    dataSource.setMaxActive(5);
-    dataSource.setInitialSize(1);
+    dataSource.setMaximumPoolSize(5);
 
     JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
     // 把DDLSQL写在文件中

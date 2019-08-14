@@ -14,7 +14,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -30,6 +29,7 @@ import com.github.catstiger.common.sql.SQLReady;
 import com.github.catstiger.common.sql.SQLRequest;
 import com.github.catstiger.common.sql.id.IdGen;
 import com.github.catstiger.common.util.Exceptions;
+import com.github.catstiger.common.util.IOHelper;
 import com.github.catstiger.common.util.ReflectUtil;
 import com.google.common.base.CaseFormat;
 
@@ -87,7 +87,7 @@ public class ExcelHandler implements ApplicationContextAware {
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
-      IOUtils.closeQuietly(in);
+      IOHelper.closeQuietly(in);
     }
     
     return entities;
