@@ -152,6 +152,26 @@ public class SQLExecutor {
   }
   
   /**
+   * 根据给定的{@code SQLReady}实例执行查询，给出查询结果的总数量。
+   * @param sqlReady 给出的{@code SQLReady}实例
+   * @return count of the results size.
+   */
+  public Long total(SQLReady sqlReady) {
+    return one(sqlReady.countSql(), Long.class, sqlReady.getArgs());
+  }
+  
+  /**
+   * 根据给出的SQL Query，执行查询，得到查询结果的总数量
+   * @param sql 给出的SQL Query
+   * @param args 绑定的查询参数
+   * @return count of the results size.
+   */
+  public Long total(String sql, @Nullable Object... args) {
+    String countSql = SQLFactory.getInstance().countSql(sql);
+    return one(countSql, Long.class, args);
+  }
+  
+  /**
    * {@code JdbcTemplate#update(String, Object...)}的快捷方式，使用给定的SQL和绑定的参数，执行更新操作（insert、update、delete等）
    * @param sql 给出SQL
    * @param args 绑定的参数
