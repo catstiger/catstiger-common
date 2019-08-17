@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.github.catstiger.common.sql.limit.LimitSQL;
 import com.github.catstiger.common.sql.limit.MySqlLimitSQL;
@@ -31,6 +32,7 @@ public final class SQLRequest {
   private List<String> includes = new ArrayList<String>(10);
   private List<String> excludes = new ArrayList<String>(10);
   private boolean usingAlias = false;
+  private String tableAlias;
   
   private boolean namedParams = false;
   private NamingStrategy namingStrategy = DEFAULT_NAME_STRATEGY;
@@ -66,6 +68,27 @@ public final class SQLRequest {
     byId = false;
     namedParams = false;
   }
+  
+  /**
+   * 根据实体类构建SQLRequest,使用指定的别名
+   * @param entityClass 实体类
+   * @param alias 别名，如果不为{@code null}且不为"Blank String", 则作为别名使用
+   */
+  public SQLRequest(Class<?> entityClass, String tableAlias) {
+    this.entity = null;
+    this.entityClass = entityClass;
+    
+    if (StringUtils.isNotBlank(tableAlias)) {
+      this.usingAlias = true;
+      this.tableAlias = tableAlias;
+    }
+    
+    namingStrategy = DEFAULT_NAME_STRATEGY;
+    includesNull = false;
+    byId = false;
+    namedParams = false;
+  }
+  
 
   /**
    * 根据实体类的实例构建一个SQLRequest，使用缺省的命名规则，并且不生成别名
@@ -95,6 +118,29 @@ public final class SQLRequest {
     this.entity = entity;
     this.entityClass = entity.getClass();
     this.usingAlias = usingAlias;
+    namingStrategy = DEFAULT_NAME_STRATEGY;
+    includesNull = false;
+    byId = false;
+    namedParams = false;
+  }
+  
+  /**
+   * 根据实体类的实例构建SQLRequest
+   * @param entity 实体类
+   * @param usingAlias 是否使用别名
+   */
+  public SQLRequest(BaseEntity entity, String tableAlias) {
+    if (entity == null) {
+      throw new RuntimeException("实体不可为null.");
+    }
+    this.entity = entity;
+    this.entityClass = entity.getClass();
+    
+    if (StringUtils.isNotBlank(tableAlias)) {
+      this.usingAlias = true;
+      this.tableAlias = tableAlias;
+    }
+    
     namingStrategy = DEFAULT_NAME_STRATEGY;
     includesNull = false;
     byId = false;
@@ -299,13 +345,17 @@ public final class SQLRequest {
       entityClass = entity.getClass();
     }
     buf.append(entityClass.getName()).append(usingAlias);
-
+    if (StringUtils.isNotBlank(tableAlias)) {
+      buf.append(tableAlias);
+    }
     if (!CollectionUtils.isEmpty(includes)) {
       buf.append(Joiner.on("_").join(includes));
     }
     if (!CollectionUtils.isEmpty(excludes)) {
       buf.append(Joiner.on("_").join(excludes));
     }
+    
+    
 
     buf.append(includesNull).append(usingAlias).append(byId);
     buf.append(namingStrategy.getClass().getSimpleName());
@@ -352,4 +402,13 @@ public final class SQLRequest {
   public boolean isById() {
     return byId;
   }
+
+  public String getTableAlias() {
+    return tableAlias;
+  }
+
+  public void setTableAlias(String tableAlias) {
+    this.tableAlias = tableAlias;
+  }
+
 }

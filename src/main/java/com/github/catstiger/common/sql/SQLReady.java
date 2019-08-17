@@ -78,6 +78,18 @@ public final class SQLReady {
       }
     }
   }
+  
+  public static SQLReady select(Class<?> entityClass) {
+    return new SQLRequest(entityClass).select();
+  }
+  
+  public static SQLReady select(Class<?> entityClass, boolean useAlias) {
+    return new SQLRequest(entityClass, useAlias).select();
+  }
+  
+  public static SQLReady select(Class<?> entityClass, String tableAlias) {
+    return new SQLRequest(entityClass, tableAlias).select();
+  }
 
   /**
    * 使用SQL和对应的命名参数，构建一个{@code SQLReady}的实例
