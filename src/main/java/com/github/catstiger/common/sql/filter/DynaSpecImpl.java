@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import com.github.catstiger.common.sql.Page;
-import com.github.catstiger.common.sql.filter.QueryPart.Operator;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class DynaSpecImpl implements DynaSpec {
@@ -142,7 +141,7 @@ public class DynaSpecImpl implements DynaSpec {
     if (StringUtils.isNotBlank(table)) {
       prefix = table + ".";
     }
-    
+
     SQLDecorator sqlDecorator = SQLDecorators.get(queryPart.getOperator());
     if (sqlDecorator != null) {
       return sqlDecorator.decorate(queryPart.getFieldName(), prefix);
@@ -200,10 +199,11 @@ public class DynaSpecImpl implements DynaSpec {
     SQLDecorators.put(Operator.LLK, new SQLDecorator() {
       @Override
       public String decorate(String fieldName, String prefix) {
-        return new StringBuilder(100).append("LOCATE(reverse(?), reverse(").append(prefix).append(fieldName).append(")) = 1").toString();
+        return new StringBuilder(100).append("LOCATE(reverse(?), reverse(").append(prefix).append(fieldName)
+            .append(")) = 1").toString();
       }
     });
-    
+
     // 处理 LK(Like) SQL
     SQLDecorators.put(Operator.LK, new SQLDecorator() {
       @Override
@@ -211,15 +211,16 @@ public class DynaSpecImpl implements DynaSpec {
         return new StringBuilder(100).append("LOCATE(?, ").append(prefix).append(fieldName).append(") > 0").toString();
       }
     });
-    
+
     // 处理 NLLK(与LLK相反) SQL
     SQLDecorators.put(Operator.NLLK, new SQLDecorator() {
       @Override
       public String decorate(String fieldName, String prefix) {
-        return new StringBuilder(100).append("LOCATE(reverse(?), reverse(").append(prefix).append(fieldName).append(")) != 1").toString();
+        return new StringBuilder(100).append("LOCATE(reverse(?), reverse(").append(prefix).append(fieldName)
+            .append(")) != 1").toString();
       }
     });
-    
+
     // 处理 NLK(Not Like) SQL
     SQLDecorators.put(Operator.NLK, new SQLDecorator() {
       @Override
@@ -235,7 +236,7 @@ public class DynaSpecImpl implements DynaSpec {
         return new StringBuilder(100).append("LOCATE(?, ").append(prefix).append(fieldName).append(") != 1").toString();
       }
     });
-    
+
     // 处理 RLK(右边匹配) SQL
     SQLDecorators.put(Operator.RLK, new SQLDecorator() {
       @Override
@@ -243,7 +244,7 @@ public class DynaSpecImpl implements DynaSpec {
         return new StringBuilder(100).append("LOCATE(?, ").append(prefix).append(fieldName).append(") = 1").toString();
       }
     });
-    
+
     // 处理 LT(小于) SQL
     SQLDecorators.put(Operator.LT, new SQLDecorator() {
       @Override
@@ -251,7 +252,7 @@ public class DynaSpecImpl implements DynaSpec {
         return new StringBuilder(100).append(prefix).append(fieldName).append(" < ? ").toString();
       }
     });
-    
+
     // 处理 NE(不等于) SQL
     SQLDecorators.put(Operator.NE, new SQLDecorator() {
       @Override
@@ -259,7 +260,7 @@ public class DynaSpecImpl implements DynaSpec {
         return new StringBuilder(100).append(prefix).append(fieldName).append(" <> ? ").toString();
       }
     });
-    
+
     // 处理 NIN(不支持) SQL
     SQLDecorators.put(Operator.NIN, new SQLDecorator() {
       @Override
@@ -267,7 +268,7 @@ public class DynaSpecImpl implements DynaSpec {
         return StringUtils.EMPTY;
       }
     });
-    
+
     // 处理 NOTNULL(Is not null) SQL
     SQLDecorators.put(Operator.NOTNULL, new SQLDecorator() {
       @Override
@@ -275,7 +276,7 @@ public class DynaSpecImpl implements DynaSpec {
         return new StringBuilder(100).append(prefix).append(fieldName).append(" is not null ").toString();
       }
     });
-    
+
     // 处理 NULL(Is null) SQL
     SQLDecorators.put(Operator.NULL, new SQLDecorator() {
       @Override

@@ -90,7 +90,41 @@ public final class SQLReady {
   public static SQLReady select(Class<?> entityClass, String tableAlias) {
     return new SQLRequest(entityClass, tableAlias).select();
   }
-
+  
+  public static SQLReady insert(BaseEntity entity) {
+    return new SQLRequest(entity).insert();
+  }
+  
+  public static SQLReady update(BaseEntity entity) {
+    return new SQLRequest(entity).updateById();
+  }
+  
+  public SQLReady where() {
+    return this.append("WHERE 1=1");
+  }
+  
+  public SQLReady and(String sqlSegment, Object... args) {
+    if (sqlSegment == null) {
+      throw new IllegalArgumentException("Sql Segment must not be null.");
+    }
+    
+    return this.append("AND").append(sqlSegment, args);
+  }
+  
+  public SQLReady andIf(String sqlSegment, Boolean condition, Object... args) {
+    if (condition) {
+      return this.and(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  public SQLReady andIf(String sqlSegment, BooleanSupplier action, Object... args) {
+    if (action.getAsBoolean()) {
+      return this.and(sqlSegment, args);
+    }
+    return this;
+  }
+  
   /**
    * 使用SQL和对应的命名参数，构建一个{@code SQLReady}的实例
    * 

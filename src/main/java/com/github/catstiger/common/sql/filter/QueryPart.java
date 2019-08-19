@@ -22,17 +22,6 @@ import com.google.common.base.Converter;
 public class QueryPart {
 	private static Logger logger = LoggerFactory.getLogger(QueryPart.class);
 
-	/**
-	 * 操作符，包含SQL中的=，<>, <, >, <=, >=, LIKE, NOT LIKE, IS NULL, IS NOT NULL
-	 */
-	public enum Operator {
-		EQ, NE, LT, GT, LE, GE, LK, LLK, RLK, NLK, NLLK, NRLK, NULL, NOTNULL, IN, NIN
-	}
-
-	public enum Type {
-		S, L, B, N, BD, DBL, FT, SN, D, T
-	}
-
 	private Operator operator;
 
 	private String fieldName;
@@ -132,45 +121,45 @@ public class QueryPart {
 		return (String) o;
 	}
 
-	private static final Map<Type, Converter<String, Object>> converters = new HashMap<>(10);
+	private static final Map<DataType, Converter<String, Object>> converters = new HashMap<>(10);
 
 	// 所有的Converter
 	static {
-		converters.put(Type.S, Converter.from(s -> {
+		converters.put(DataType.S, Converter.from(s -> {
 			return s;
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.B, Converter.from(s -> {
+		converters.put(DataType.B, Converter.from(s -> {
 			return Boolean.valueOf(s);
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.BD, Converter.from(s -> {
+		converters.put(DataType.BD, Converter.from(s -> {
 			return new BigDecimal(s);
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.DBL, Converter.from(s -> {
+		converters.put(DataType.DBL, Converter.from(s -> {
 			return Double.valueOf(s);
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.D, Converter.from(s -> {
+		converters.put(DataType.D, Converter.from(s -> {
 			if (s.indexOf("T") > 0) {
 				s = StringUtils.replace(s, "T", " ");
 			}
 			return Converters.parseDate(s);
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.FT, Converter.from(s -> {
+		converters.put(DataType.FT, Converter.from(s -> {
 			return Float.valueOf(s);
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.L, Converter.from(s -> {
+		converters.put(DataType.L, Converter.from(s -> {
 			if (NumberUtils.isCreatable(s)) {
 				return Long.valueOf(s);
 			}
 			return null;
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.N, Converter.from(s -> {
+		converters.put(DataType.N, Converter.from(s -> {
 			if (StringUtils.isNumeric(s)) {
 				return Integer.valueOf(s);
 			} else if (Boolean.TRUE.toString().equalsIgnoreCase(s)) {
@@ -181,11 +170,11 @@ public class QueryPart {
 			return null;
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.SN, Converter.from(s -> {
+		converters.put(DataType.SN, Converter.from(s -> {
 			return Short.valueOf(s);
 		}, QueryPart::simpleConverter));
 
-		converters.put(Type.SN, Converter.from(s -> {
+		converters.put(DataType.SN, Converter.from(s -> {
 			return Converters.parseDate(s);
 		}, QueryPart::simpleConverter));
 	}
@@ -196,7 +185,7 @@ public class QueryPart {
 		}
 
 		Object value = paramValue;
-		Type type = Type.valueOf(typeAbbr);
+		DataType type = DataType.valueOf(typeAbbr);
 		if (converters.containsKey(type)) {
 			value = converters.get(type).convert(paramValue);
 		}
