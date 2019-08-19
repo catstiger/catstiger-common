@@ -63,6 +63,20 @@ public final class SQLReady {
    * 排序方向常量
    */
   public static final String ASC = "asc";
+  
+  /**
+   * SQL AND
+   */
+  public static final String AND = "AND";
+  
+  /**
+   * SQL OR
+   */
+  public static final String OR = "OR";
+  
+  private static final String WHERE_TRUE = "WHERE 1=1";
+  
+  private static final String WHERE = "WHERE";
 
   /**
    * 使用SQL和对应的参数，构建一个{@code SQLReady}的实例
@@ -79,58 +93,14 @@ public final class SQLReady {
     }
   }
   
-  public static SQLReady select(Class<?> entityClass) {
-    return new SQLRequest(entityClass).select();
-  }
-  
-  public static SQLReady select(Class<?> entityClass, boolean useAlias) {
-    return new SQLRequest(entityClass, useAlias).select();
-  }
-  
-  public static SQLReady select(Class<?> entityClass, String tableAlias) {
-    return new SQLRequest(entityClass, tableAlias).select();
-  }
-  
-  public static SQLReady insert(BaseEntity entity) {
-    return new SQLRequest(entity).insert();
-  }
-  
-  public static SQLReady update(BaseEntity entity) {
-    return new SQLRequest(entity).updateById();
-  }
-  
-  public SQLReady where() {
-    return this.append("WHERE 1=1");
-  }
-  
-  public SQLReady and(String sqlSegment, Object... args) {
-    if (sqlSegment == null) {
-      throw new IllegalArgumentException("Sql Segment must not be null.");
-    }
-    
-    return this.append("AND").append(sqlSegment, args);
-  }
-  
-  public SQLReady andIf(String sqlSegment, Boolean condition, Object... args) {
-    if (condition) {
-      return this.and(sqlSegment, args);
-    }
-    return this;
-  }
-  
-  public SQLReady andIf(String sqlSegment, BooleanSupplier action, Object... args) {
-    if (action.getAsBoolean()) {
-      return this.and(sqlSegment, args);
-    }
-    return this;
-  }
-  
   /**
    * 使用SQL和对应的命名参数，构建一个{@code SQLReady}的实例
    * 
    * @param sql SQL语句
    * @param namedParameters {@code Map}装载的命名参数，key为名称，value为参数值。key值必须与SQL中的命名占位符一致。
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady(String sql, Map<String, Object> namedParameters) {
     if (sql == null) {
       throw new IllegalArgumentException("SQL must not be null.");
@@ -165,13 +135,241 @@ public final class SQLReady {
    * @param sql SQL语句
    * @param namedParameters {@code Map}装载的命名参数，key为名称，value为参数值。key值必须与SQL中的命名占位符一致。
    * @param limitSql {@code LimitSQL}的实例
+    * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady(String sql, Map<String, Object> namedParameters, LimitSQL limitSql) {
     appended.add(sql);
     this.namedParameters = namedParameters;
     this.limitSql = limitSql;
   }
-
+  
+  /**
+   * 根据给定的<code>Class</code>, 生成一个select SQL，例如：
+   * select id, username from user
+   * @param entityClass 给出entity class，entity class采用JPA标注。
+   * @return new SQLReady instance.
+   */
+  public static SQLReady select(Class<?> entityClass) {
+    return new SQLRequest(entityClass).select();
+  }
+  
+  /**
+   * 根据给定的<code>Class</code>，生成一个select SQL语句。
+   * @param entityClass 给出使用JPA标注的entity class
+   * @param useAlias 是否使用别名，如果为{@code true}，那么生成的SQL别名遵照如下规则：
+   * <ul>
+   *     <li>表名别名由构成表名的各个单词（下划线分割）的首字母构成，如果只有一个单词，则由该单词前两位字母构成</li>
+   *     <li>字段别名与对应的实体类的属性名字相同</li>
+   * </ul>
+   * @return new SQLReady instance.
+   */
+  public static SQLReady select(Class<?> entityClass, boolean useAlias) {
+    return new SQLRequest(entityClass, useAlias).select();
+  }
+  
+  /**
+   * 根据给定的<code>Class</code>，生成一个select SQL语句。
+   * @param entityClass 给出使用JPA标注的entity class
+   * @param tableAlias 给出表名别名，字段名别名与对应的实体类的属性名字相同。
+   * @return new SQLReady instance.
+   */
+  public static SQLReady select(Class<?> entityClass, String tableAlias) {
+    return new SQLRequest(entityClass, tableAlias).select();
+  }
+  
+  /**
+   * 根据给出的实体类的实例，构建一个insert SQL，以及根据实体类属性解析得到的绑定的参数
+   * @param entity 给出实体类的实例
+   * @return new SQLReady instance.
+   */
+  public static SQLReady insert(BaseEntity entity) {
+    return new SQLRequest(entity).insert();
+  }
+  
+  /**
+   * 根据给出的实体类的实例，构建一个update SQL，以及根据实体类属性解析得到的绑定的参数。构建的update 以ID(主键)
+   * 作为过滤条件：
+   * <pre>
+   * update users set username=? where id=?
+   * <pre>
+   * @param entity 给出实体类的实例
+   * @return new SQLReady instance.
+   */
+  public static SQLReady update(BaseEntity entity) {
+    return new SQLRequest(entity).updateById();
+  }
+  
+  /**
+   * 在SQL的末尾，添加一个where 1=1子句:
+   * <pre>
+   * // select id, name from student where 1=1
+   * SQLReady sqlReady = SQLReady.select(Sutdent.class).where()
+   * </pre>
+   * 
+   * @return
+   */
+  public SQLReady where() {
+    if (appended.contains(WHERE_TRUE)) {
+      return this;
+    }
+    return this.append(WHERE_TRUE);
+  }
+  
+  /**
+   * 在SQL的末尾，追加一个Where子句
+   * <pre>
+   * // select id, name from student where name=?
+   * SQLReady sqlReady = SQLReady.select(Student.class).where("name = ?", "小明");
+   * </pre>
+   * @param sqlSegment SQL子句，如果不以where/WHERE开头，则自动前缀一个WHERE
+   * @param args 绑定的查询参数
+   * @return this instance
+   */
+  public SQLReady where(String sqlSegment, Object... args) {
+    if (StringUtils.isBlank(sqlSegment)) {
+      return this;
+    }
+    boolean whereStart = StringUtils.trim(sqlSegment).toUpperCase().startsWith(WHERE);
+    
+    if (whereStart) {
+      append(sqlSegment, args);
+    } else {
+      append(WHERE).append(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  /**
+   * 根据条件，在SQL的末尾，追加一个Where子句
+   * <pre>
+   * // select id, name from student where name=?
+   * String name = //get name...
+   * SQLReady sqlReady = SQLReady.select(Student.class).where("name = ?", name != null, name);
+   * </pre>
+   * @param sqlSegment sqlSegment SQL子句，如果不以where/WHERE开头，则自动前缀一个WHERE
+   * @param condition 追加条件，如果为{@code true}，则执行
+   * @param args 绑定的参数
+   * @return   this instance
+   */
+  public SQLReady where(String sqlSegment, boolean condition, Object... args) {
+    if (condition) {
+      where(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  /**
+   * 根据条件，在SQL的末尾，追加一个Where子句
+   * <pre>
+   * // select id, name from student where name=?
+   * String name = //get name...
+   * SQLReady sqlReady = SQLReady.select(Student.class).where("name = ?", () -> {name != null}, name);
+   * </pre>
+   * @param sqlSegment sqlSegment SQL子句，如果不以where/WHERE开头，则自动前缀一个WHERE
+   * @param condition 追加条件，如果为{@code true}，则执行
+   * @param args 绑定的参数
+   * @return   this instance
+   */
+  public SQLReady where(String sqlSegment, BooleanSupplier action, Object... args) {
+    if (action.getAsBoolean()) {
+      where(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  /**
+   * 追加一个SQL AND字句，例如：
+   * <pre>
+   * 如果原SQLReady的内容为“select id from user where 1=1”
+   * 执行and("username='admin')之后，
+   * SQLReady的内容为"select id from user where 1=1 and username='admin'"
+   * </pre>
+   * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时，{@code #and(String, Object...)}
+   * 方法会自动加一个“AND ”前缀
+   * @param args 绑定的参数
+   * @return this object.
+   */
+  public SQLReady and(String sqlSegment, Object... args) {
+    return andOr(sqlSegment, AND, args);
+  }
+  
+  /**
+   * 根据给定的条件，追加一个SQL AND子句。
+   * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时，{@code #and(String, Boolean, Object...)}
+   * 方法会自动加一个“AND ”前缀
+   * @param condition 如果为{@code true}在执行SQL追加，否则，什么都不做
+   * @param args 绑定的参数
+   * @return this object.
+   */
+  public SQLReady and(String sqlSegment, boolean condition, Object... args) {
+    if (condition) {
+      return and(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  /**
+   * 根据给定的条件，追加一个SQL AND子句。
+   * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时，{@code #andIf(String, BooleanSupplier, Object...)}
+   * 方法会自动加一个“AND ”前缀
+   * @param condition 如果返回值为{@code true}在执行SQL追加，否则，什么都不做
+   * @param args 绑定的参数
+   * @return this object.
+   */
+  public SQLReady and(String sqlSegment, BooleanSupplier action, Object... args) {
+    if (action.getAsBoolean()) {
+      return this.and(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  /**
+   * 追加一个SQL OR字句，例如：
+   * <pre>
+   * 如果原SQLReady的内容为“select id from user where 1=1”
+   * 执行and("username='admin')之后，
+   * SQLReady的内容为"select id from user where 1=1 or username='admin'"
+   * </pre>
+   * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时，{@code #or(String, Object...)}
+   * 方法会自动加一个“OR ”前缀
+   * @param args 绑定的参数
+   * @return this object.
+   */
+  public SQLReady or(String sqlSegment, Object... args) {
+    return andOr(sqlSegment, OR, args);
+  }
+  
+  /**
+   * 根据给定的条件，追加一个SQL OR子句。
+   * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时，{@code #or(String, Boolean, Object...)}
+   * 方法会自动加一个“OR ”前缀
+   * @param condition 如果为{@code true}在执行SQL追加，否则，什么都不做
+   * @param args 绑定的参数
+   * @return this object.
+   */
+  public SQLReady or(String sqlSegment, boolean condition, Object... args) {
+    if (condition) {
+      return this.or(sqlSegment, args);
+    }
+    return this;
+  }
+  
+  /**
+   * 根据给定的条件，追加一个SQL OR子句。
+   * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时{@code #or(String, BooleanSupplier, Object...)}
+   * 方法会自动加一个“OR ”前缀
+   * @param condition 如果返回值为{@code true}在执行SQL追加，否则，什么都不做
+   * @param args 绑定的参数
+   * @return this object.
+   */
+  public SQLReady or(String sqlSegment, BooleanSupplier action, Object... args) {
+    if (action.getAsBoolean()) {
+      return or(sqlSegment, args);
+    }
+    return this;
+  }
+  
   /**
    * 返回完整的SQL语句，即本SQLReady实例历次append的结果，按照顺序组合成一个完整的SQL
    * 
@@ -258,7 +456,7 @@ public final class SQLReady {
    * @param appendArgs 此段SQL所args 涉及的参数
    * @return
    */
-  public SQLReady append(String sqlSegment, Boolean expression, Object... appendArgs) {
+  public SQLReady append(String sqlSegment, boolean expression, Object... appendArgs) {
     return this.append(sqlSegment, () -> expression, appendArgs);
   }
 
@@ -283,7 +481,9 @@ public final class SQLReady {
    * @param sqlSegment SQL片段
    * @param name 参数名称
    * @param value 参数值
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady append(String sqlSegment, String name, Object value) {
     if (sqlSegment == null) {
       throw new IllegalArgumentException("Sql Segment must not be null.");
@@ -303,7 +503,9 @@ public final class SQLReady {
    * @param name 参数名称
    * @param value 参数值
    * @return This instance.
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady append(String sqlSegment, Boolean expression, String name, Object value) {
     return append(sqlSegment, () -> expression, name, value);
   }
@@ -316,7 +518,9 @@ public final class SQLReady {
    * @param name 参数名称
    * @param value 参数值
    * @return This instance.
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady append(String sqlSegment, BooleanSupplier action, String name, Object value) {
     if (action == null || !action.getAsBoolean()) {
       return this;
@@ -330,7 +534,9 @@ public final class SQLReady {
    * @param sqlSegment SQL片段
    * @param namedParams 命名参数，KEY为参数名称，Value为参数值
    * @return This instance.
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady append(String sqlSegment, Map<String, Object> namedParams) {
     if (sqlSegment == null) {
       throw new IllegalArgumentException("Sql Segment must not be null.");
@@ -349,7 +555,9 @@ public final class SQLReady {
    * @param expression 如果为{@code true},则追加；否则，忽略
    * @param namedParams 命名参数，key与SQL中对应的名称一致
    * @return This instance.
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady append(String sqlSegment, Boolean expression, Map<String, Object> namedParams) {
     return this.append(sqlSegment, () -> expression, namedParams);
   }
@@ -361,7 +569,9 @@ public final class SQLReady {
    * @param action 如果返回true,则追加；否则，忽略
    * @param namedParams 命名参数，key与SQL中对应的名称一致
    * @return This instance.
+   * @deprecated 暂不支持命名参数
    */
+  @Deprecated
   public SQLReady append(String sqlSegment, BooleanSupplier action, Map<String, Object> namedParams) {
     if (action == null || !action.getAsBoolean()) {
       return this;
@@ -383,7 +593,8 @@ public final class SQLReady {
   }
 
   /**
-   * 当SQL片段是一个like查询的时候，如果参数pattern不为{@code null} 也不为{@code StringUtils#isBlank(CharSequence)}，则 追加一个查询SQL，并根据{@link LikeMode} 构建一个matched
+   * 当SQL片段是一个like查询的时候，如果参数pattern不为{@code null} 也不为{@code StringUtils#isBlank(CharSequence)}，
+   * 则追加一个查询SQL，并根据{@link LikeMode} 构建一个matched
    * arguments
    * 
    * @param sqlSegment 给出SQL片段，通常类似于 some_column LIKE ?
@@ -497,5 +708,33 @@ public final class SQLReady {
   @Override
   public String toString() {
     return getSql();
+  }
+  
+  private boolean andStart(String str) {
+    if (StringUtils.isBlank(str)) {
+      return false;
+    }
+    return StringUtils.trimToEmpty(str).toLowerCase().startsWith("and ");
+  }
+  
+  private boolean orStart(String str) {
+    if (StringUtils.isBlank(str)) {
+      return false;
+    }
+    return StringUtils.trimToEmpty(str).toLowerCase().startsWith("or ");
+  }
+  
+  private SQLReady andOr(String sqlSegment, String andOr, Object... args) {
+    if (sqlSegment == null) {
+      throw new IllegalArgumentException("Sql Segment must not be null.");
+    }
+    
+    if (!andStart(sqlSegment) && !orStart(sqlSegment)) {
+      append("andOr").append(sqlSegment, args);
+    } else {
+      append(sqlSegment, args);
+    }
+    
+    return this;
   }
 }

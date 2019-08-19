@@ -149,6 +149,7 @@ public final class SQLFactory {
    * @return SQLReady 包括SQL和参数，如果SQLRequest.namedParams为<code>true</code>,
    *         SQL语句使用属性名作为字段别名和占位符，参数采用Map存储，Key为属性名。 否则，SQL语句采用?作为占位符，参数用数组保存。
    */
+  @SuppressWarnings("deprecation")
   public SQLReady insert(SQLRequest sqlRequest) {
     if (sqlRequest.getEntity() == null) {
       throw new java.lang.IllegalArgumentException("给出的实体类不可为空。");
@@ -227,6 +228,7 @@ public final class SQLFactory {
    * </ul>
    * 
    */
+  @SuppressWarnings("deprecation")
   public SQLReady update(SQLRequest sqlRequest) {
     Preconditions.checkNotNull(sqlRequest.getEntity(), "给出的实体类不可为空。");
     
