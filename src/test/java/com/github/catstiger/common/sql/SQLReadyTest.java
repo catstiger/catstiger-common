@@ -8,7 +8,9 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
+import org.springframework.util.Assert;
 
 public class SQLReadyTest {
 
@@ -22,6 +24,9 @@ public class SQLReadyTest {
     
     sqlReady = SQLReady.select(TestEntity.class, "a_");
     System.out.println(sqlReady.getSql());
+    
+    sqlReady = new SQLRequest(TestEntity.class, true).selectById();
+    Assert.isTrue(StringUtils.trim(sqlReady.getSql()).endsWith("id=?"), "Must be end with byID \n" + sqlReady.getSql());
   }
 
 }

@@ -82,44 +82,30 @@ public final class SQLFactory {
     if (sqlObj != null) {
       return new SQLReady(sqlObj, new Object[] {}, sqlRequest.getLimitSql());
     }
+    //缓存中木有
     Collection<ColField> colFields = columns(sqlRequest);
     String tablename = sqlRequest.getNamingStrategy().tablename(sqlRequest.getEntityClass());
-
-    final StringBuilder sqlBuf = new StringBuilder(1000).append("SELECT ");
-
-    List<String> sqlSegs = new ArrayList<String>(colFields.size()); // 一个一个SQL片段，最后join为完整的字段列表
     String tableAlias = this.buildTableAlias(sqlRequest); //表名别名
+    
+    final StringBuilder sqlBuf = new StringBuilder(1000).append("SELECT ");
+    List<String> sqlSegs = new ArrayList<String>(colFields.size()); // 一个一个SQL片段，最后join为完整的字段列表
+   
     // SELECT后的字段列表
     for (Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
-
-      StringBuilder sqlSeg = new StringBuilder(100);
-      // 属性名作为别名
-      if (sqlRequest.isUsingAlias()) {
-        sqlSeg.append(tableAlias).append(".").append(colField.col).append(" as ").append(colField.fieldname);
-      } else { // 不使用别名
-        sqlSeg.append(colField.col);
-      }
+      String sqlSeg = selectCols(sqlRequest, tableAlias, colField);
       sqlSegs.add(sqlSeg.toString());
     }
-    sqlBuf.append(Joiner.on(",\n").join(sqlSegs));
+    
+    sqlBuf.append(Joiner.on(",\n ").join(sqlSegs));
 
     // FROM后面的主表
-    sqlBuf.append(" \nFROM ").append(tablename);
-    
-    sqlBuf.append(" ").append(tableAlias).append(" \n");
+    sqlBuf.append(" \nFROM ").append(tablename).append(" ").append(tableAlias).append(" \n");
 
     ColField primary = findPrimary(colFields);
 
     if (sqlRequest.isById()) {
-      String idCol = (primary != null ? primary.col : "id");
-      sqlBuf.append("WHERE ").append(tableAlias).append(".").append(idCol).append("=");
-      if (sqlRequest.isNamedParams()) {
-        String idField = (primary != null ? tableAlias + "." + primary.fieldname : tableAlias + ".id");
-        sqlBuf.append(":").append(idField);
-      } else {
-        sqlBuf.append("?");
-      }
+      sqlBuf.append(selectById(sqlRequest, primary, tableAlias)); //where id=?
     }
     sqlBuf.append("\n");
     sqlCache.put(key, sqlBuf.toString()); // 装入缓存
@@ -127,20 +113,6 @@ public final class SQLFactory {
     return new SQLReady(sqlBuf.toString(), new Object[] {}, sqlRequest.getLimitSql());
   }
   
-  //构建表名别名
-  private String buildTableAlias(SQLRequest sqlRequest) {
-    String mainAlias = StringUtils.EMPTY;
-    
-    if (sqlRequest.isUsingAlias()) {
-      if (StringUtils.isBlank(sqlRequest.getTableAlias())) {
-        mainAlias = sqlRequest.getNamingStrategy().simpleAlias(sqlRequest.getEntityClass()); // 字段所在表别名
-      } else {
-        mainAlias = sqlRequest.getTableAlias();
-      }
-    }
-    return mainAlias;
-  }
-
   /**
    * 根据给定的实体类，构造一个SQL INSERT语句，
    * 如果给出的SQLRequest对象中，namedParams为<code>true</code>，则返回带有参数的SQL，数据使用MAP封装，否则返回带有?的SQL，数据采用数组封装。
@@ -575,6 +547,48 @@ public final class SQLFactory {
     }
     return null;
   }
+  
+
+  private String selectCols(SQLRequest sqlRequest, String tableAlias, ColField colField) {
+    StringBuilder sqlSeg = new StringBuilder(100);
+    // 属性名作为别名
+    if (sqlRequest.isUsingAlias()) {
+      sqlSeg.append(tableAlias).append(".").append(colField.col).append(" as ").append(colField.fieldname);
+    } else { // 不使用别名
+      sqlSeg.append(colField.col);
+    }
+    
+    return sqlSeg.toString();
+  }
+  
+  private String selectById(SQLRequest sqlRequest, ColField primary, String tableAlias) {
+    StringBuilder sqlBuf = new StringBuilder(100);
+    String idCol = (primary != null ? primary.col : "id");
+    sqlBuf.append("WHERE ").append(tableAlias).append(".").append(idCol).append("=");
+    if (sqlRequest.isNamedParams()) {
+      String idField = (primary != null ? tableAlias + "." + primary.fieldname : tableAlias + ".id");
+      sqlBuf.append(":").append(idField);
+    } else {
+      sqlBuf.append("?");
+    }
+    
+    return sqlBuf.toString();
+  }
+  
+  //构建表名别名
+  private String buildTableAlias(SQLRequest sqlRequest) {
+    String mainAlias = StringUtils.EMPTY;
+    
+    if (sqlRequest.isUsingAlias()) {
+      if (StringUtils.isBlank(sqlRequest.getTableAlias())) {
+        mainAlias = sqlRequest.getNamingStrategy().simpleAlias(sqlRequest.getEntityClass()); // 字段所在表别名
+      } else {
+        mainAlias = sqlRequest.getTableAlias();
+      }
+    }
+    return mainAlias;
+  }
+
 
   /**
    * 用于装载数据库字段col, 和实体类属性field的对应关系
