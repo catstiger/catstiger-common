@@ -2,6 +2,7 @@ package com.github.catstiger.common.web;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -17,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import com.alibaba.fastjson.JSON;
+import com.github.catstiger.common.util.ContentTypes;
 import com.github.catstiger.common.util.Exceptions;
 import com.google.common.net.HttpHeaders;
 
@@ -260,7 +263,7 @@ public final class WebUtil {
   }
   
   /**
-   * 想HttpServletResponse Render 一个JSON字符串
+   * 向HttpServletResponse Render 一个JSON字符串
    */
   public static void renderJson(HttpServletResponse response, String json) {
     response.setContentType(CONTENT_TYPE_JSON);
@@ -270,5 +273,70 @@ public final class WebUtil {
       e.printStackTrace();
       throw Exceptions.unchecked(e);
     }
+  }
+  
+  /**
+   * 向HttpServletResponse Render 一个JSON字符串
+   */
+  public static void renderJson(String json) {
+    renderJson(getResponse(), json);
+  }
+  
+  /**
+   * 向HttpServletResponse Render 一个对象，在此之前，会将对象序列化为JSON
+   */
+  public static void writeJson(Object data) {
+    writeJson(getResponse(), data);
+  }
+  
+  /**
+   * 向HttpServletResponse Render 一个对象，在此之前，会将对象序列化为JSON
+   */
+  public static void writeJson(HttpServletResponse response, Object data) {
+    try {
+      Writer writer = response.getWriter();
+      JSON.writeJSONString(writer, data);
+    } catch (IOException e) {
+      e.printStackTrace();
+      throw Exceptions.unchecked(e);
+    }
+  }
+  
+  /**
+   * 向HttpServletResponse Render 一个HTML字符串
+   */
+  public static void renderHtml(HttpServletResponse response, String html) {
+    response.setContentType(ContentTypes.get("html"));
+    try {
+      response.getWriter().write(html);
+    } catch (IOException e) {
+      e.printStackTrace();
+      throw Exceptions.unchecked(e);
+    }
+  }
+  
+  /**
+   * 向HttpServletResponse Render 一个HTML字符串
+   */
+  public static void renderHtml(String html) {
+    renderHtml(html);
+  }
+  
+  /**
+   * 返回当前请求对应的HttpServletRequest对象，需要正确配置{@link WebObjectsHolderFilter}
+   * @see {@link WebObjectsHolderFilter}
+   * @see {@link WebObjectsHolder}
+   */
+  public static HttpServletRequest getRequest() {
+    return WebObjectsHolder.getRequest();
+  }
+  
+  /**
+   * 返回当前请求对应的HttpServletResponse对象，需要正确配置{@link WebObjectsHolderFilter}
+   * @see {@link WebObjectsHolderFilter}
+   * @see {@link WebObjectsHolder}
+   */
+  public static HttpServletResponse getResponse() {
+    return WebObjectsHolder.getResponse();
   }
 }

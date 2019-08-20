@@ -5,7 +5,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * 
+ * 保存<code>HttpServletRequest</code>和<code>HttpServletResponse</code>对象，这样
+ * 可以在应用程序的任何地方使用这些对象。
+ * <p>需要首先配置WebObjectsHolderFilter</p>
  * @author samlee
  *
  */
@@ -13,11 +15,11 @@ public final class WebObjectsHolder {
   private static final ThreadLocal<HttpServletRequest> requestHolder = new InheritableThreadLocal<HttpServletRequest>();
   private static final ThreadLocal<HttpServletResponse> responseHolder = new InheritableThreadLocal<HttpServletResponse>();
   
-  public static void putRequest(HttpServletRequest request) {
+  static void putRequest(HttpServletRequest request) {
     requestHolder.set(request);
   }
   
-  public static void putResponse(HttpServletResponse response) {
+  static void putResponse(HttpServletResponse response) {
     responseHolder.set(response);
   }
   
