@@ -25,6 +25,10 @@ public final class ReflectUtil {
   private static final Method[] NO_METHODS = {};
 
   private static final Field[] NO_FIELDS = {};
+  
+  private static final int MIN_METHOD_NAME = 4;
+  
+  private static final int GETTER_LENGTH = 3;
 
   /**
    * Cache for {@link Class#getDeclaredMethods()} plus equivalent default methods from Java 8 based interfaces, allowing for fast iteration.
@@ -284,6 +288,50 @@ public final class ReflectUtil {
     }
 
     return map;
+  }
+  
+  
+  public static boolean isGetter(Method method) {
+    String name = method.getName();
+    int modifiers = method.getModifiers();
+    
+    
+    return (!ReflectionUtils.isObjectMethod(method)
+        && name.length() >= MIN_METHOD_NAME && name.startsWith("get") 
+        && 'A' <= name.charAt(GETTER_LENGTH) && name.charAt(GETTER_LENGTH) <= 'Z' //确保大写字母
+        && method.getParameterCount() == 0 
+        && method.getReturnType() != Void.TYPE 
+        && Modifier.isPublic(modifiers)
+        && !Modifier.isStatic(modifiers)
+        && !Modifier.isAbstract(modifiers));
+  }
+  
+  public static boolean isSetter(Method method) {
+    String name = method.getName();
+    int modifiers = method.getModifiers();
+    
+    return (name.length() >= MIN_METHOD_NAME && name.startsWith("set") 
+        && 'A' <= name.charAt(GETTER_LENGTH) && name.charAt(GETTER_LENGTH) <= 'Z' 
+        && method.getParameterCount() == 1 
+        && Void.TYPE.equals(method.getReturnType())
+        && Modifier.isPublic(modifiers)
+        && !Modifier.isStatic(modifiers)
+        && !Modifier.isAbstract(modifiers));
+  }
+  
+  public static Method findSetterByGetter(Method getter) {
+    Class<?> type = getter.getDeclaringClass();
+    String name = "set" + getter.getName().substring(GETTER_LENGTH);
+    Class<?> returnType = getter.getReturnType();
+    Method setter;
+    try {
+      setter = type.getMethod(name, returnType);
+    } catch (NoSuchMethodException | SecurityException e) {
+      e.printStackTrace();
+      return null;
+    }
+    
+    return isSetter(setter) ? setter : null;
   }
 
   private static LinkedList<Field> fields(Class<?> clazz) {

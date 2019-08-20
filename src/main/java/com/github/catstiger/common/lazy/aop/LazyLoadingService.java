@@ -2,14 +2,16 @@ package com.github.catstiger.common.lazy.aop;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import com.github.catstiger.common.sql.JdbcTemplateProxy;
 import com.github.catstiger.common.sql.Page;
 import com.github.catstiger.common.sql.SQLReady;
 import com.github.catstiger.common.sql.SQLRequest;
+import com.github.catstiger.common.util.ReflectUtil;
 
 /**
  * 根据<code>@LazyField</code>标注，加载BaseEntity的子类中需要延迟加载的类。
@@ -34,13 +37,14 @@ import com.github.catstiger.common.sql.SQLRequest;
 public class LazyLoadingService {
   private static Logger logger = LoggerFactory.getLogger(LazyLoadingService.class);
   
-  private static final int MIN_METHOD_NAME = 4;
-  private static final int GETTER_LENGTH = 3;
-  
   @Autowired
   private ApplicationContext applicationContext;
   @Autowired
   private JdbcTemplateProxy jdbcTemplate;
+  @Autowired
+  private RedissonClient redisClient;
+  
+  private static final String CACHE_NAME = "lazy_field_cache_";
   
   /**
    * 根据BaseEntity子类中的<code>@LazyField</code>标注，加载相关的field
@@ -54,7 +58,7 @@ public class LazyLoadingService {
     Method[] methods = ReflectionUtils.getAllDeclaredMethods(type);
     
     for (Method method : methods) {
-      if (isGetter(method)) {
+      if (ReflectUtil.isGetter(method)) {
         LazyField lazyField = method.getAnnotation(LazyField.class);
         if (lazyField == null) {
           if (BaseEntity.class.isAssignableFrom(method.getReturnType())) {
@@ -62,6 +66,9 @@ public class LazyLoadingService {
             loadEntity(entity, method);
           }
         } else {
+          if (lazyField.ignore()) {
+            continue;
+          }
           if (!lazyField.service().equals(Object.class) && StringUtils.isNotBlank(lazyField.method())) {
             // 调用指定Bean，指定方法的情况
             loadField(entity, method, lazyField);
@@ -139,7 +146,7 @@ public class LazyLoadingService {
       logger.debug("Loading entity by {}", service.getClass().getName());
       fullEntity = loadByService(service, relateEntity.getId());
     }
-    Method setter = findSetterByGetter(getter);
+    Method setter = ReflectUtil.findSetterByGetter(getter);
     if (setter != null && fullEntity != null) {
       ReflectionUtils.invokeMethod(setter, owner, fullEntity);
     }
@@ -153,7 +160,13 @@ public class LazyLoadingService {
       logger.debug("给出的实体对象为null");
       return;
     }
-    Method setter = findSetterByGetter(getter);
+    
+    if (this.getFromCache(owner, getter, lazyField)) {
+      logger.debug("从缓存加载关联数据 {}", key(owner, getter));
+      return;
+    }
+    
+    Method setter = ReflectUtil.findSetterByGetter(getter);
     if (setter == null) {
       logger.debug("没有对应的setter方法 {}#{}", owner.getClass().getSimpleName(), getter.getName());
       return;
@@ -182,6 +195,7 @@ public class LazyLoadingService {
         //调用Service中的方法
         Object value = ReflectionUtils.invokeMethod(method, service, getFieldValues(owner, lazyField.paramFields()));
         ReflectionUtils.invokeMethod(setter, owner, value);
+        putToCache(owner, getter, lazyField, value);
         logger.debug("Loading field by service {}", service.getClass().getName());
       }
     }
@@ -235,47 +249,45 @@ public class LazyLoadingService {
     return ReflectionUtils.invokeMethod(get, service, id);
   }
   
-  private static boolean isGetter(Method method) {
-    String name = method.getName();
-    int modifiers = method.getModifiers();
-    
-    
-    return (!ReflectionUtils.isObjectMethod(method)
-        && name.length() >= MIN_METHOD_NAME && name.startsWith("get") 
-        && 'A' <= name.charAt(GETTER_LENGTH) && name.charAt(GETTER_LENGTH) <= 'Z' //确保大写字母
-        && method.getParameterCount() == 0 
-        && method.getReturnType() != Void.TYPE 
-        && Modifier.isPublic(modifiers)
-        && !Modifier.isStatic(modifiers)
-        && !Modifier.isAbstract(modifiers));
-  }
-  
-  private static boolean isSetter(Method method) {
-    String name = method.getName();
-    int modifiers = method.getModifiers();
-    
-    return (name.length() >= MIN_METHOD_NAME && name.startsWith("set") 
-        && 'A' <= name.charAt(GETTER_LENGTH) && name.charAt(GETTER_LENGTH) <= 'Z' 
-        && method.getParameterCount() == 1 
-        && Void.TYPE.equals(method.getReturnType())
-        && Modifier.isPublic(modifiers)
-        && !Modifier.isStatic(modifiers)
-        && !Modifier.isAbstract(modifiers));
-  }
-  
-  private static Method findSetterByGetter(Method getter) {
-    Class<?> type = getter.getDeclaringClass();
-    String name = "set" + getter.getName().substring(GETTER_LENGTH);
-    Class<?> returnType = getter.getReturnType();
-    Method setter;
-    try {
-      setter = type.getMethod(name, returnType);
-    } catch (NoSuchMethodException | SecurityException e) {
-      logger.error("未指定对应的Setter方法 {}", name);
-      e.printStackTrace();
-      return null;
+  private boolean getFromCache(BaseEntity entity, Method getter, LazyField lazyField) {
+    if (lazyField == null || lazyField.ignore() || lazyField.cacheSeconds() <= 0) {
+      return false;
     }
     
-    return isSetter(setter) ? setter : null;
+    if (entity == null || entity.getId() == null) {
+      return false;
+    }
+    
+    String key = key(entity, getter);
+    RMapCache<String, Object> cache = redisClient.getMapCache(CACHE_NAME);
+    if (cache.containsKey(key)) {
+      Object object = cache.get(key);
+      if (object == null) {
+        return false;
+      }
+      Method setter = ReflectUtil.findSetterByGetter(getter);
+      ReflectUtil.invokeMethod(setter, entity, object);
+      return true;
+    }
+    return false;
   }
+  
+  private void putToCache(BaseEntity entity, Method getter, LazyField lazyField, Object targetObject) {
+    if (lazyField == null || lazyField.ignore() || lazyField.cacheSeconds() <= 0) {
+      return;
+    }
+    
+    if (entity == null || entity.getId() == null) {
+      return;
+    }
+    String key = key(entity, getter);
+    RMapCache<String, Object> cache = redisClient.getMapCache(CACHE_NAME);
+    cache.put(key, targetObject, lazyField.cacheSeconds(), TimeUnit.SECONDS);
+  }
+  
+  private String key(BaseEntity entity, Method method) {
+    return new StringBuilder(100).append(entity.getClass().getSimpleName())
+        .append(":").append(entity.getId()).append(":").append(method.getName()).toString();
+  }
+ 
 }
