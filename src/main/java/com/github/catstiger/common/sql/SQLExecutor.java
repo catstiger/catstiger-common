@@ -7,10 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Component;
 
 import com.github.catstiger.common.sql.mapper.BeanPropertyRowMapperEx;
 import com.github.catstiger.common.sql.mapper.Mappers;
 
+@Component
 public class SQLExecutor {
   private JdbcTemplate jdbcTemplate;
 

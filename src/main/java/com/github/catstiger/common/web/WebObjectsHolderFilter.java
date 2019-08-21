@@ -37,6 +37,7 @@ public class WebObjectsHolderFilter extends OncePerRequestFilter {
     try {
       WebObjectsHolder.putRequest(request);
       WebObjectsHolder.putResponse(response);
+      filterChain.doFilter(request, response);
     } finally {
       WebObjectsHolder.clear();
     }
