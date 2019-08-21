@@ -19,11 +19,11 @@ public class SQLExecutor {
   /**
    * 返回{@link JdbcTemplate的实例}
    */
-  @Autowired
   public JdbcTemplate getJdbcTemplate() {
     return jdbcTemplate;
   }
-
+  
+  @Autowired
   public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
   }
