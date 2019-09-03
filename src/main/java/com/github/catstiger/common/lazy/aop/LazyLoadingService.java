@@ -44,7 +44,9 @@ public class LazyLoadingService {
   @Autowired
   private RedissonClient redisClient;
   
-  private static final String CACHE_NAME = "lazy_field_cache_";
+  private static final String CACHE_NAME_FIELD = "lazy_field_cache_";
+  private static final String CACHE_NAME_OBJECT = "lazy_object_cache_";
+  private static final int ENTITY_CACHE_SECONDS = 600; // 实体对象缓存时间, Time to live, ttl（秒）
   
   /**
    * 根据BaseEntity子类中的<code>@LazyField</code>标注，加载相关的field
@@ -126,26 +128,35 @@ public class LazyLoadingService {
     if (relateEntity.getId() == null) {
       return;
     }
-    //猜测service的bean name
-    String beanName = relateEntity.getClass().getSimpleName() + "Service";
-    beanName = StringUtils.uncapitalize(beanName);
-    //获取service实例
-    Object service = null;
-    try {
-      service = applicationContext.getBean(beanName);
-    } catch (Exception e) {
-      logger.debug("未得到service {}", beanName);
+    RMapCache<String, Object> cache = redisClient.getMapCache(CACHE_NAME_OBJECT);
+    String key = relateEntity.getClass().getSimpleName() + ":" + relateEntity.getId(); // cache key
+    Object fullEntity = null; // The object we required.
+    
+    if (cache.containsKey(key)) { // 从缓存中获取实体对象
+      fullEntity = cache.get(key);
+    } else {
+      //猜测service的bean name
+      String beanName = relateEntity.getClass().getSimpleName() + "Service";
+      beanName = StringUtils.uncapitalize(beanName);
+      //获取service实例
+      Object service = null;
+      try {
+        service = applicationContext.getBean(beanName);
+      } catch (Exception e) {
+        logger.debug("未得到service {}", beanName);
+      }
+      //没有service，直接查询jdbc
+      if (service == null) {
+        fullEntity = loadByJdbc(relateEntity.getClass(), relateEntity.getId());
+      } else { // 有Service的情况
+        fullEntity = loadByService(service, relateEntity.getId());
+      }
+      if (fullEntity != null) {
+        logger.debug("加载Entity {} ", key);
+        cache.put(key, fullEntity, ENTITY_CACHE_SECONDS, TimeUnit.SECONDS); //缓存实体对象
+      }
     }
     
-    Object fullEntity = null;
-    //没有service，直接查询jdbc
-    if (service == null) {
-      logger.debug("Loading entity by jdbc");
-      fullEntity = loadByJdbc(relateEntity.getClass(), relateEntity.getId());
-    } else { // 有Service的情况
-      logger.debug("Loading entity by {}", service.getClass().getName());
-      fullEntity = loadByService(service, relateEntity.getId());
-    }
     Method setter = ReflectUtil.findSetterByGetter(getter);
     if (setter != null && fullEntity != null) {
       ReflectionUtils.invokeMethod(setter, owner, fullEntity);
@@ -160,10 +171,41 @@ public class LazyLoadingService {
       logger.debug("给出的实体对象为null");
       return;
     }
+    Object value = null;
+    String key = this.key(owner, getter);
+    RMapCache<String, Object> cache = redisClient.getMapCache(CACHE_NAME_FIELD);
     
-    if (this.getFromCache(owner, getter, lazyField)) {
-      logger.debug("从缓存加载关联数据 {}", key(owner, getter));
-      return;
+    if (cache.containsKey(key)) {
+      value = cache.get(key); //缓存
+    } else {
+      if (!lazyField.service().equals(Object.class)) {
+        Object service = null;
+        try {
+          service = applicationContext.getBean(lazyField.service()); //Service Bean
+        } catch (Exception e) {
+          logger.warn("指定的Bean无法获取 {}", lazyField.service());
+          return;
+        }
+        
+        String methodName = (StringUtils.isBlank(lazyField.method()) ? "get" : lazyField.method()); // method name
+        // 被调用的方法参数类型
+        Class<?>[] paramTypes = getFieldTypes(owner.getClass(), lazyField.paramFields()); 
+        Method method = null;
+        try {
+          method = ReflectionUtils.findMethod(lazyField.service(), methodName, paramTypes);
+        } catch (Exception e) {
+          logger.warn("指定的方法无法获取 {} # {}", lazyField.service().getSimpleName(), methodName);
+          return;
+        }
+        
+        if (method != null) {
+          //调用Service中的方法
+          value = ReflectionUtils.invokeMethod(method, service, getFieldValues(owner, lazyField.paramFields()));
+          if (value != null && lazyField.cacheSeconds() != 0) {
+            cache.put(key, value, lazyField.cacheSeconds() < 0 ? 0 : lazyField.cacheSeconds(), TimeUnit.SECONDS);
+          }
+        }
+      }
     }
     
     Method setter = ReflectUtil.findSetterByGetter(getter);
@@ -171,34 +213,8 @@ public class LazyLoadingService {
       logger.debug("没有对应的setter方法 {}#{}", owner.getClass().getSimpleName(), getter.getName());
       return;
     }
-    if (!lazyField.service().equals(Object.class)) {
-      Object service = null;
-      try {
-        service = applicationContext.getBean(lazyField.service()); //Service Bean
-      } catch (Exception e) {
-        logger.warn("指定的Bean无法获取 {}", lazyField.service());
-        return;
-      }
-      
-      String methodName = (StringUtils.isBlank(lazyField.method()) ? "get" : lazyField.method()); // method name
-      // 被调用的方法参数类型
-      Class<?>[] paramTypes = getFieldTypes(owner.getClass(), lazyField.paramFields()); 
-      Method method = null;
-      try {
-        method = ReflectionUtils.findMethod(lazyField.service(), methodName, paramTypes);
-      } catch (Exception e) {
-        logger.warn("指定的方法无法获取 {} # {}", lazyField.service().getSimpleName(), methodName);
-        return;
-      }
-      
-      if (method != null) {
-        //调用Service中的方法
-        Object value = ReflectionUtils.invokeMethod(method, service, getFieldValues(owner, lazyField.paramFields()));
-        ReflectionUtils.invokeMethod(setter, owner, value);
-        putToCache(owner, getter, lazyField, value);
-        logger.debug("Loading field by service {}", service.getClass().getName());
-      }
-    }
+    ReflectionUtils.invokeMethod(setter, owner, value);
+    
   }
   
   private Class<?>[] getFieldTypes(Class<?> ownerClass, String[] fields) {
@@ -247,42 +263,6 @@ public class LazyLoadingService {
       return null;
     }
     return ReflectionUtils.invokeMethod(get, service, id);
-  }
-  
-  private boolean getFromCache(BaseEntity entity, Method getter, LazyField lazyField) {
-    if (lazyField == null || lazyField.ignore() || lazyField.cacheSeconds() <= 0) {
-      return false;
-    }
-    
-    if (entity == null || entity.getId() == null) {
-      return false;
-    }
-    
-    String key = key(entity, getter);
-    RMapCache<String, Object> cache = redisClient.getMapCache(CACHE_NAME);
-    if (cache.containsKey(key)) {
-      Object object = cache.get(key);
-      if (object == null) {
-        return false;
-      }
-      Method setter = ReflectUtil.findSetterByGetter(getter);
-      ReflectUtil.invokeMethod(setter, entity, object);
-      return true;
-    }
-    return false;
-  }
-  
-  private void putToCache(BaseEntity entity, Method getter, LazyField lazyField, Object targetObject) {
-    if (lazyField == null || lazyField.ignore() || lazyField.cacheSeconds() <= 0) {
-      return;
-    }
-    
-    if (entity == null || entity.getId() == null) {
-      return;
-    }
-    String key = key(entity, getter);
-    RMapCache<String, Object> cache = redisClient.getMapCache(CACHE_NAME);
-    cache.put(key, targetObject, lazyField.cacheSeconds(), TimeUnit.SECONDS);
   }
   
   private String key(BaseEntity entity, Method method) {
