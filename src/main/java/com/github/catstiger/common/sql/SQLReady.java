@@ -673,6 +673,22 @@ public final class SQLReady {
   public SQLReady orderBy(String column) {
     return orderBy(column, null, true);
   }
+  
+  /**
+   * 追加排序方向，ASC，通常与{@link #orderBy(String)}结合使用
+   * @return this instance
+   */
+  public SQLReady asc() {
+    return this.append(ASC);
+  }
+  
+  /**
+   * 追加排序方向，DESC，通常与{@link #orderBy(String)}结合使用
+   * @return this instance
+   */
+  public SQLReady desc() {
+    return this.append(DESC);
+  }
 
   /**
    * 将原始的SQL转换为一个用于count查询的SQL，会去掉原始SQL中的order， limit等子句，然后在外围包装一个SELECT count(*) FROM..
@@ -730,7 +746,7 @@ public final class SQLReady {
     }
     
     if (!andStart(sqlSegment) && !orStart(sqlSegment)) {
-      append("andOr").append(sqlSegment, args);
+      append(andOr).append(sqlSegment, args);
     } else {
       append(sqlSegment, args);
     }
