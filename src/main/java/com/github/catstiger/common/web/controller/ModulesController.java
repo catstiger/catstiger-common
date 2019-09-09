@@ -6,12 +6,10 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.alibaba.fastjson.JSON;
 import com.github.catstiger.common.sql.JdbcTemplateProxy;
-import com.github.catstiger.common.sql.Page;
 
 public abstract class ModulesController extends BaseController {
 	/**
@@ -25,38 +23,6 @@ public abstract class ModulesController extends BaseController {
 
 	@Autowired
 	protected JdbcTemplateProxy jdbcTemplate;
-
-	
-	/**
-	 * 从bootstrap-table提交的参数中获取Page对象
-	 * 
-	 * @return
-	 */
-	protected Page tablePage() {
-		String strStart = getRequest().getParameter(PARAM_BTABLE_START);
-		int offset = NumberUtils.isCreatable(strStart) ? Integer.valueOf(strStart) : 0;
-		String strLimit = getRequest().getParameter(PARAM_BTABLE_LIMIT);
-		int limit = NumberUtils.isCreatable(strLimit) ? Integer.valueOf(strLimit) : 0;
-		return new Page(offset, limit);
-	}
-
-	/**
-	 * 从bootstrap-table提交的参数中，获取排序字段名
-	 * 
-	 * @return
-	 */
-	protected String tableSort() {
-		return getRequest().getParameter(PARAM_BTABLE_SORT);
-	}
-
-	/**
-	 * 从bootstrap-table提交的参数中，获取排序方向，ASC or DESC
-	 * 
-	 * @return
-	 */
-	protected String tableOrder() {
-		return getRequest().getParameter(PARAM_BTABLE_ORDER);
-	}
 
 	/**
 	 * 在AJAX访问的时候，构建一个success返回值
