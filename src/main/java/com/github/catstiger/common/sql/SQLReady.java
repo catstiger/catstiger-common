@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.lang.Nullable;
 
 import com.github.catstiger.common.sql.limit.LimitSQL;
 import com.google.common.base.Joiner;
@@ -226,7 +227,7 @@ public final class SQLReady {
    * @param args 绑定的查询参数
    * @return this instance
    */
-  public SQLReady where(String sqlSegment, Object... args) {
+  public SQLReady where(String sqlSegment, @Nullable Object... args) {
     if (StringUtils.isBlank(sqlSegment)) {
       return this;
     }
@@ -252,7 +253,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return   this instance
    */
-  public SQLReady where(String sqlSegment, boolean condition, Object... args) {
+  public SQLReady where(String sqlSegment, Boolean condition, @Nullable Object... args) {
     if (condition) {
       where(sqlSegment, args);
     }
@@ -271,7 +272,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return   this instance
    */
-  public SQLReady where(String sqlSegment, BooleanSupplier action, Object... args) {
+  public SQLReady where(String sqlSegment, BooleanSupplier action, @Nullable Object... args) {
     if (action.getAsBoolean()) {
       where(sqlSegment, args);
     }
@@ -290,7 +291,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return this object.
    */
-  public SQLReady and(String sqlSegment, Object... args) {
+  public SQLReady and(String sqlSegment, @Nullable Object... args) {
     return andOr(sqlSegment, AND, args);
   }
   
@@ -302,7 +303,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return this object.
    */
-  public SQLReady and(String sqlSegment, boolean condition, Object... args) {
+  public SQLReady and(String sqlSegment, Boolean condition, @Nullable Object... args) {
     if (condition) {
       return and(sqlSegment, args);
     }
@@ -317,7 +318,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return this object.
    */
-  public SQLReady and(String sqlSegment, BooleanSupplier action, Object... args) {
+  public SQLReady and(String sqlSegment, BooleanSupplier action, @Nullable Object... args) {
     if (action.getAsBoolean()) {
       return this.and(sqlSegment, args);
     }
@@ -336,7 +337,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return this object.
    */
-  public SQLReady or(String sqlSegment, Object... args) {
+  public SQLReady or(String sqlSegment, @Nullable Object... args) {
     return andOr(sqlSegment, OR, args);
   }
   
@@ -348,7 +349,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return this object.
    */
-  public SQLReady or(String sqlSegment, boolean condition, Object... args) {
+  public SQLReady or(String sqlSegment, Boolean condition, @Nullable Object... args) {
     if (condition) {
       return this.or(sqlSegment, args);
     }
@@ -363,7 +364,7 @@ public final class SQLReady {
    * @param args 绑定的参数
    * @return this object.
    */
-  public SQLReady or(String sqlSegment, BooleanSupplier action, Object... args) {
+  public SQLReady or(String sqlSegment, BooleanSupplier action, @Nullable Object... args) {
     if (action.getAsBoolean()) {
       return or(sqlSegment, args);
     }
@@ -435,7 +436,7 @@ public final class SQLReady {
    * @param sqlSegment SQL片段
    * @param appendArgs 此段SQL所args 涉及的参数
    */
-  public SQLReady append(String sqlSegment, Object... appendArgs) {
+  public SQLReady append(String sqlSegment, @Nullable Object... appendArgs) {
     if (sqlSegment == null) {
       throw new IllegalArgumentException("Sql Segment must not be null.");
     }
@@ -456,7 +457,7 @@ public final class SQLReady {
    * @param appendArgs 此段SQL所args 涉及的参数
    * @return
    */
-  public SQLReady append(String sqlSegment, boolean expression, Object... appendArgs) {
+  public SQLReady append(String sqlSegment, Boolean expression, @Nullable Object... appendArgs) {
     return this.append(sqlSegment, () -> expression, appendArgs);
   }
 
@@ -468,7 +469,7 @@ public final class SQLReady {
    * @param appendArgs 此段SQL所args 涉及的参数
    * @return This instance.
    */
-  public SQLReady append(String sqlSegment, BooleanSupplier action, Object... appendArgs) {
+  public SQLReady append(String sqlSegment, BooleanSupplier action, @Nullable Object... appendArgs) {
     if (action == null || !action.getAsBoolean()) {
       return this;
     }
