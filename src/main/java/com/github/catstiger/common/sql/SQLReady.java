@@ -329,7 +329,7 @@ public final class SQLReady {
    * 追加一个SQL OR字句，例如：
    * <pre>
    * 如果原SQLReady的内容为“select id from user where 1=1”
-   * 执行and("username='admin')之后，
+   * 执行or("username='admin')之后，
    * SQLReady的内容为"select id from user where 1=1 or username='admin'"
    * </pre>
    * @param sqlSegment 追加的SQL片段，可以以AND或者OR关键字开头，也可以不用，此时，{@code #or(String, Object...)}

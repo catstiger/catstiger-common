@@ -1,0 +1,14 @@
+singleServerConfig:
+  address: "redis://127.0.0.1:6379"
+  password: "PROCEED2017"
+  database: 4
+  subscriptionConnectionMinimumIdleSize: 1
+  subscriptionConnectionPoolSize: 64
+  connectionMinimumIdleSize: 16
+  connectionPoolSize: 128
+
+threads: 0 #0 = current_processors_amount * 2
+nettyThreads: 0 #0 = current_processors_amount * 2
+codec:
+  class: "org.redisson.codec.FstCodec"
+transportMode: "NIO"
