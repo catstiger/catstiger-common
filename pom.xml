@@ -12,7 +12,7 @@
 
 	<groupId>com.github.catstiger</groupId>
 	<artifactId>catstiger-common</artifactId>
-	<version>0.0.7</version>
+	<version>0.0.8</version>
 	<name>Catstiger Common</name>
 	<packaging>jar</packaging>
 
