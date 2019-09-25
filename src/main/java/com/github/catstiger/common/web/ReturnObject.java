@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.ui.ExtendedModelMap;
+import org.apache.commons.lang3.StringUtils;
 
 import com.alibaba.fastjson.JSON;
 
@@ -18,18 +18,17 @@ import com.alibaba.fastjson.JSON;
  * 注意，{@code ReturnObject} 不是线程安全的。
  * @author samlee
  */
-public class ReturnObject extends ExtendedModelMap implements Serializable {
-  public static final String ATTRIBUTE_SUCCESS = "success";
-  public static final String ATTRIBUTE_MSG = "errorMessage";
-  public static final String ATTRIBUTE_DATA = "data";
-  
+public class ReturnObject implements Serializable {
+  private Boolean success = true;
+  private String errorMessage = StringUtils.EMPTY;
+  private Object data;
   /**
    * 创建一个新的ReturnObject, 并设置状态“success”为{@code true}
    * @return new instance of ReturnObject
    */
   public static ReturnObject success() {
     ReturnObject returnObject = new ReturnObject();
-    returnObject.addAttribute(ATTRIBUTE_SUCCESS, true);
+    returnObject.success = true;
     return returnObject;
   }
   
@@ -39,7 +38,7 @@ public class ReturnObject extends ExtendedModelMap implements Serializable {
    */
   public static ReturnObject error() {
     ReturnObject returnObject = new ReturnObject();
-    returnObject.addAttribute(ATTRIBUTE_SUCCESS, false);
+    returnObject.success = false;
     return returnObject;
   }
   
@@ -49,7 +48,7 @@ public class ReturnObject extends ExtendedModelMap implements Serializable {
    * @return this instance.
    */
   public ReturnObject data(Object data) {
-    addAttribute(ATTRIBUTE_DATA, data);
+    this.setData(data);
     return this;
   }
   
@@ -59,7 +58,7 @@ public class ReturnObject extends ExtendedModelMap implements Serializable {
    * @return this instance.
    */
   public ReturnObject message(String message) {
-    addAttribute(ATTRIBUTE_MSG, message);
+    this.errorMessage = message;
     return this;
   }
   
@@ -86,5 +85,29 @@ public class ReturnObject extends ExtendedModelMap implements Serializable {
   
   private ReturnObject() {
     super();
+  }
+
+  public Boolean getSuccess() {
+    return success;
+  }
+
+  public void setSuccess(Boolean success) {
+    this.success = success;
+  }
+
+  public String getErrorMessage() {
+    return errorMessage;
+  }
+
+  public void setErrorMessage(String errorMessage) {
+    this.errorMessage = errorMessage;
+  }
+
+  public Object getData() {
+    return data;
+  }
+
+  public void setData(Object data) {
+    this.data = data;
   }
 }
