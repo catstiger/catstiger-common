@@ -330,13 +330,19 @@ public final class SQLFactory {
    * @return
    */
   public String removeLimit(String sql) {
-    int index = sql.toLowerCase().lastIndexOf("limit");
-    if (index > 0) {
-      return sql.substring(0, index);
+    String regEx = "\\s*limit\\s*[0-9]\\d*\\s*,\\s*[0-9]\\d*|\\s*limit\\s*[0-9]\\d*";
+    Pattern p = Pattern.compile(regEx, Pattern.CASE_INSENSITIVE);
+    Matcher matcher = p.matcher(sql);
+    if (matcher.find(0)) {
+      int index = matcher.start();
+      if (index > 0) {
+        return sql.substring(0, index);
+      }
     }
+    
     return sql;
   }
-
+ 
   /**
    * 将一个普通的SQL，转换为COUNT查询的SQL，去掉Select中的字段列表，和ORDER子句。
    * 
