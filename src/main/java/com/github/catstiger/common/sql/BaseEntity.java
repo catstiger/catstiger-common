@@ -6,6 +6,7 @@ import javax.persistence.Id;
 
 @SuppressWarnings("serial")
 public abstract class BaseEntity implements Serializable {
+  @Id
   protected Long id;
 
   @Id
