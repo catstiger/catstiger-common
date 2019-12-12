@@ -70,7 +70,7 @@ public final class ValidationUtil {
   }
 
   /**
-   * 验证IP是否合法
+   *  验证IP是否合法
    * 
    */
   public static boolean isValidIp(String ip) {
@@ -80,7 +80,7 @@ public final class ValidationUtil {
   }
   
   /**
-   * 验证是否是正确的手机号码
+   *  验证是否是正确的手机号码
    * @param mobile 给出手机号码
    * @return
    */
