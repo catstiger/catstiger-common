@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.ibatis.session.RowBounds;
 
 import com.github.catstiger.common.util.Exceptions;
 import com.github.catstiger.common.web.WebObjectsHolder;
@@ -143,6 +144,13 @@ public class Page implements Serializable {
   public void setRows(Collection<?> rows) {
     this.rows = rows;
   }
+  
+  /**
+   * 转换为RowBounds对象，方便Mybatis使用、
+   */
+  public RowBounds toRowBounds() {
+    return new RowBounds(start, limit);
+  }
 
   /**
    * 创建一个Page实例，使用给定的start和limit参数
@@ -182,6 +190,62 @@ public class Page implements Serializable {
 
   public void setSummaryData(Collection<?> summaryData) {
     this.summaryData = summaryData;
+  }
+  
+  /**
+   * 相当于{@code #setStart(int)} 
+   * @param start offset of the result set;
+   * @return this page
+   */
+  public Page start(int start) {
+    this.start = start;
+    return this;
+  }
+  
+  /**
+   * 相当于{@code #setLimit(int)}
+   * @param limit
+   * @return this page
+   */
+  public Page limit(int limit) {
+    this.limit = limit;
+    return this;
+  }
+  
+  /**
+   * 相当于{@code #getTotal()}
+   * @param total 
+   * @return this page
+   */
+  public Page total(int total) {
+    this.total = total;
+    return this;
+  }
+  
+  /**
+   * 相当于{@code #rows}
+   * @param rows
+   * @return
+   */
+  public Page rows(Collection<?> rows) {
+    this.rows = rows;
+    return this;
+  }
+  
+  /**
+   * 简化版{@code #getStart()}
+   * @return
+   */
+  public int start() {
+    return this.start;
+  }
+  
+  /**
+   * 简化版{@code #getLimit()}
+   * @return
+   */
+  public int limit() {
+    return this.limit;
   }
 
 }
