@@ -1,5 +1,7 @@
 package com.github.catstiger.common;
 
+import java.util.ResourceBundle;
+
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -9,7 +11,22 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "app", ignoreInvalidFields = true)
 public class AppProps implements BeanClassLoaderAware {
+  public static final String APP_PREFIX;
+  
+  static {
+    String prefix;
+    try {
+      prefix = ResourceBundle.getBundle("application").getString("app.prefix");
+    } catch (Exception e) {
+      prefix = "";
+    }
+    APP_PREFIX = prefix;
+  }
+  
+  
   private ClassLoader classLoader;
+  
+  private String prefix;
   
   private CDN cdn;
   
@@ -151,6 +168,14 @@ public class AppProps implements BeanClassLoaderAware {
   
   public ClassLoader getBeanClassLoader() {
     return classLoader;
+  }
+
+  public String getPrefix() {
+    return prefix;
+  }
+
+  public void setPrefix(String prefix) {
+    this.prefix = prefix;
   }
 
 }

@@ -13,12 +13,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.github.catstiger.common.AppProps;
+
 @Service
 public class RedisIdGen implements IdGen {
   private static Logger logger = LoggerFactory.getLogger(RedisIdGen.class);
 
   public static final int DEFAULT_STEP = 3000;
-  public static final String DEFAULT_KEY = "_catstiger_high_";
+  public static final String DEFAULT_KEY = AppProps.APP_PREFIX + "_catstiger_high_";
 
   private static Lock lock = new ReentrantLock(false);
   private static AtomicLong max;
