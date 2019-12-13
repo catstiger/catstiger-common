@@ -214,11 +214,11 @@ public class Page implements Serializable {
   
   /**
    * 相当于{@code #getTotal()}
-   * @param total 
+   * @param c 
    * @return this page
    */
-  public Page total(int total) {
-    this.total = total;
+  public Page total(long c) {
+    this.total = c;
     return this;
   }
   
@@ -247,5 +247,4 @@ public class Page implements Serializable {
   public int limit() {
     return this.limit;
   }
-
 }

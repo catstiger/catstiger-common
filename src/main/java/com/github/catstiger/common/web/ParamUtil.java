@@ -156,8 +156,14 @@ public final class ParamUtil {
    * 返回一个根据当前分页条件而创建的Page对象，该对象常用于pageQuery的参数
    */
   public static Page page() {
-    Page page = new Page(getStart(), getPageSize());
-    page.setRows(Collections.emptyList());
+    Page page;
+    try {
+      page = new Page(getStart(), getPageSize());
+      page.setRows(Collections.emptyList());
+    } catch (Exception e) {
+      //测试状态
+      page = Page.createPage();
+    }
     return page;
   }
   
