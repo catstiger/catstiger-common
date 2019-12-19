@@ -162,7 +162,7 @@ public final class ParamUtil {
       page.setRows(Collections.emptyList());
     } catch (Exception e) {
       //测试状态
-      page = Page.createPage();
+      page = Page.createPage(0, Page.DEFAULT_PAGE_SIZE);
     }
     return page;
   }
