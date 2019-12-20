@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Summary implements Serializable {
+  private static final long serialVersionUID = 3775961455560709610L;
+
   private boolean success = true;
   private int total;
   private int errors;

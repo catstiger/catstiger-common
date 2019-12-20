@@ -3,6 +3,8 @@ package com.github.catstiger.common.poi;
 import java.io.Serializable;
 
 public class RowValid implements Serializable {
+  private static final long serialVersionUID = 8447796080212542237L;
+  
   private boolean isValid;
   private String errorMessage;
   private int row;

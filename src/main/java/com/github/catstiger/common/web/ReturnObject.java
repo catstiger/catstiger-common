@@ -19,6 +19,8 @@ import com.alibaba.fastjson.JSON;
  * @author samlee
  */
 public class ReturnObject implements Serializable {
+  private static final long serialVersionUID = 3760070610839678501L;
+ 
   private Boolean success = true;
   private String errorMessage = StringUtils.EMPTY;
   private Object data;

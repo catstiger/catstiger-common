@@ -8,6 +8,8 @@ import java.io.Serializable;
  *
  */
 public class CellValid implements Serializable {
+  private static final long serialVersionUID = 36056542710263028L;
+ 
   private boolean isValid;
   private String errorMessage;
  

@@ -34,6 +34,8 @@ public class SQLReadyTest {
 @Entity
 @Table(name = "t_test")
 class TestEntity extends BaseEntity {
+  private static final long serialVersionUID = -6788006514810204105L;
+
   private String title;
   private String content;
   private Date lastModified;
@@ -78,6 +80,7 @@ class TestEntity extends BaseEntity {
 @Entity
 @Table(name = "t_test_out")
 class TestOut extends BaseEntity {
+  private static final long serialVersionUID = 6708890566077823646L;
   private String name;
 
   public String getName() {
