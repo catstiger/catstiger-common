@@ -20,6 +20,7 @@ import org.springframework.util.ReflectionUtils;
 import com.github.catstiger.common.sql.NamingStrategy;
 import com.github.catstiger.common.sql.ORMHelper;
 import com.github.catstiger.common.sql.annotation.AutoId;
+import com.github.catstiger.common.sql.annotation.Meta;
 import com.github.catstiger.common.sql.sync.ColumnCreator;
 import com.github.catstiger.common.sql.sync.DDLExecutor;
 import com.github.catstiger.common.sql.sync.DatabaseInfo;
@@ -111,6 +112,17 @@ public class MySqlColumnCreator implements ColumnCreator {
     Id id = getter.getAnnotation(Id.class); // 是否主键
     if (id != null) {
       sql.append(" primary key ");
+    }
+    
+    //注解
+    Meta meta = field.getAnnotation(Meta.class);
+    if (meta != null) {
+      if (StringUtils.isNotBlank(meta.description())) {
+        sql.append(" comment '").append(meta.description()).append("'");
+      } 
+      else if (StringUtils.isNotBlank(meta.value())) {
+        sql.append(" comment '").append(meta.value()).append("'");
+      }
     }
 
     return sql.toString();
