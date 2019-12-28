@@ -143,7 +143,7 @@ public final class ZipUtil {
       parameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD); // 加密方式
     }
     try {
-      ZipFile zipFile = new ZipFile(dest, passwd.toCharArray());
+      ZipFile zipFile = new ZipFile(dest, StringUtils.isBlank(passwd) ? null : passwd.toCharArray());
       if (srcFile.isDirectory()) {
         // 如果不创建目录的话,将直接把给定目录下的文件压缩到压缩文件,即没有目录结构
         if (!isCreateDir) {
